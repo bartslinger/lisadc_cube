@@ -44,16 +44,11 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-struct ADC_Values{
-  uint16_t adc_1;
-  uint16_t adc_2;
-  uint16_t adc_3;
-};
-
-struct ADC_Values adc_values;
-char buf[80];
-char test[] = "Hallo daar!\n";
+#define BLINK_TIME 50
+uint16_t adc_values[3];
 uint8_t adc_msg[12];
+uint32_t blink_cnt = 0;
+
 
 /* USER CODE END PV */
 
@@ -62,7 +57,7 @@ void SystemClock_Config(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-void construct_pprz_msg(struct ADC_Values);
+void construct_pprz_msg();
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -91,7 +86,6 @@ int main(void)
   MX_USART1_UART_Init();
 
   /* USER CODE BEGIN 2 */
-  uint32_t metingen[3];
   uint8_t idx = 0;
   // LED OFF
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
@@ -105,20 +99,25 @@ int main(void)
   {
     while(HAL_GetTick() - previous_tick <= 1) {
       // wait
-      asm("nop");
+      //asm("nop");
     }
     previous_tick = HAL_GetTick();
     static uint32_t counter = 0;
     counter++;
     HAL_ADC_Start(&hadc);
     HAL_ADC_PollForConversion(&hadc, 10);
-    metingen[idx] = HAL_ADC_GetValue(&hadc);
+    adc_values[idx] = (uint16_t) HAL_ADC_GetValue(&hadc);
     /* Increment index */
     idx++; idx %= 3;
 
     // Print out values
-    sprintf(buf, "ANALOG:    %5u   %4u %4u %4u\n", (unsigned int) counter, (unsigned int) metingen[0], (unsigned int) metingen[1], (unsigned int) metingen[2]);
-    HAL_UART_Transmit_IT(&huart1, (uint8_t *)buf, strlen(buf));
+    //sprintf(buf, "ANALOG:    %5u   %4u %4u %4u\n", (unsigned int) counter, (unsigned int) metingen[0], (unsigned int) metingen[1], (unsigned int) metingen[2]);
+    construct_pprz_msg();
+    HAL_UART_Transmit_IT(&huart1, (uint8_t *)adc_msg, 12);
+    if(HAL_GetTick() - blink_cnt >= BLINK_TIME) {
+      HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+      blink_cnt = previous_tick;
+    }
 
   /* USER CODE END WHILE */
 
@@ -169,17 +168,17 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void construct_pprz_msg(struct ADC_Values adc_values) {
+void construct_pprz_msg() {
   adc_msg[0] = 0x99;    // PPRZ STX
   adc_msg[1] = 12;      // length of message
-  adc_msg[2] = 0;       // sender_id
+  adc_msg[2] = 114;     // sender_id
   adc_msg[3] = 140;     // message id 140=ADC_DATA
-  adc_msg[4] = (uint8_t) (adc_values.adc_1);      // LSB
-  adc_msg[5] = (uint8_t) (adc_values.adc_1 >> 8); // MSB
-  adc_msg[6] = (uint8_t) (adc_values.adc_2);      // LSB
-  adc_msg[7] = (uint8_t) (adc_values.adc_2 >> 8); // MSB
-  adc_msg[8] = (uint8_t) (adc_values.adc_3);      // LSB
-  adc_msg[9] = (uint8_t) (adc_values.adc_3 >> 8); // MSB
+  adc_msg[4] = (uint8_t) (adc_values[0]);      // LSB
+  adc_msg[5] = (uint8_t) (adc_values[0] >> 8); // MSB
+  adc_msg[6] = (uint8_t) (adc_values[1]);      // LSB
+  adc_msg[7] = (uint8_t) (adc_values[1] >> 8); // MSB
+  adc_msg[8] = (uint8_t) (adc_values[2]);      // LSB
+  adc_msg[9] = (uint8_t) (adc_values[2] >> 8); // MSB
 
   uint8_t crc_a = 0;
   uint8_t crc_b = 0;
@@ -202,7 +201,6 @@ void construct_pprz_msg(struct ADC_Values adc_values) {
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
   /* Set transmission flag: trasfer complete*/
-  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 
 
 }
