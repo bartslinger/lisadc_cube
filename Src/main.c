@@ -56,6 +56,8 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
+char buf[80];
+char test[] = "Hallo daar!\n";
 
 /* USER CODE END 0 */
 
@@ -80,16 +82,11 @@ int main(void)
   MX_USART1_UART_Init();
 
   /* USER CODE BEGIN 2 */
+  uint32_t metingen[3];
+  uint8_t idx = 0;
+  // LED OFF
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
-  if (HAL_ADC_Start(&hadc) != HAL_OK) {
-  }
-
-  if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK) {
-  }
-  else {
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-  }
 
   /* USER CODE END 2 */
 
@@ -97,10 +94,17 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    uint32_t meting = HAL_ADC_GetValue(&hadc);
-    char buf[80];
-    sprintf(buf, "%u\n", (unsigned int) meting);
-    HAL_UART_Transmit(&huart1, (uint8_t *)buf, strlen(buf), 10);
+    static uint32_t counter = 0;
+    counter++;
+    HAL_ADC_Start(&hadc);
+    HAL_ADC_PollForConversion(&hadc, 10);
+    metingen[idx] = HAL_ADC_GetValue(&hadc);
+    /* Increment index */
+    idx++; idx %= 3;
+    if (counter % 3000 == 0) {
+      sprintf(buf, "ANALOG:   %4u %4u %4u\n", (unsigned int) metingen[0], (unsigned int) metingen[1], (unsigned int) metingen[2]);
+      HAL_UART_Transmit_IT(&huart1, (uint8_t *)buf, strlen(buf));
+    }
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -149,6 +153,20 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+  * @brief  Tx Transfer completed callback
+  * @param  UartHandle: UART handle.
+  * @note   This example shows a simple way to report end of IT Tx transfer, and
+  *         you can add your own implementation.
+  * @retval None
+  */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+  /* Set transmission flag: trasfer complete*/
+  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
+
+}
 
 /* USER CODE END 4 */
 
