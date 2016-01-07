@@ -137,3 +137,5 @@ clean:
 -include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)
 
 # *** EOF ***
+flash: $(BUILD_DIR)/$(TARGET).bin
+	st-flash write $(BUILD_DIR)/$(TARGET).bin 0x8000000
