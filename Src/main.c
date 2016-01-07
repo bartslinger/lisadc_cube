@@ -44,6 +44,16 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+struct ADC_Values{
+  uint16_t adc_1;
+  uint16_t adc_2;
+  uint16_t adc_3;
+};
+
+struct ADC_Values adc_values;
+char buf[80];
+char test[] = "Hallo daar!\n";
+uint8_t adc_msg[12];
 
 /* USER CODE END PV */
 
@@ -52,12 +62,11 @@ void SystemClock_Config(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+void construct_pprz_msg(struct ADC_Values);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-char buf[80];
-char test[] = "Hallo daar!\n";
+
 
 /* USER CODE END 0 */
 
@@ -87,13 +96,18 @@ int main(void)
   // LED OFF
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
-
+  uint32_t previous_tick = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    while(HAL_GetTick() - previous_tick <= 1) {
+      // wait
+      asm("nop");
+    }
+    previous_tick = HAL_GetTick();
     static uint32_t counter = 0;
     counter++;
     HAL_ADC_Start(&hadc);
@@ -101,10 +115,11 @@ int main(void)
     metingen[idx] = HAL_ADC_GetValue(&hadc);
     /* Increment index */
     idx++; idx %= 3;
-    if (counter % 3000 == 0) {
-      sprintf(buf, "ANALOG:   %4u %4u %4u\n", (unsigned int) metingen[0], (unsigned int) metingen[1], (unsigned int) metingen[2]);
-      HAL_UART_Transmit_IT(&huart1, (uint8_t *)buf, strlen(buf));
-    }
+
+    // Print out values
+    sprintf(buf, "ANALOG:    %5u   %4u %4u %4u\n", (unsigned int) counter, (unsigned int) metingen[0], (unsigned int) metingen[1], (unsigned int) metingen[2]);
+    HAL_UART_Transmit_IT(&huart1, (uint8_t *)buf, strlen(buf));
+
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -153,6 +168,30 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void construct_pprz_msg(struct ADC_Values adc_values) {
+  adc_msg[0] = 0x99;    // PPRZ STX
+  adc_msg[1] = 12;      // length of message
+  adc_msg[2] = 0;       // sender_id
+  adc_msg[3] = 140;     // message id 140=ADC_DATA
+  adc_msg[4] = (uint8_t) (adc_values.adc_1);      // LSB
+  adc_msg[5] = (uint8_t) (adc_values.adc_1 >> 8); // MSB
+  adc_msg[6] = (uint8_t) (adc_values.adc_2);      // LSB
+  adc_msg[7] = (uint8_t) (adc_values.adc_2 >> 8); // MSB
+  adc_msg[8] = (uint8_t) (adc_values.adc_3);      // LSB
+  adc_msg[9] = (uint8_t) (adc_values.adc_3 >> 8); // MSB
+
+  uint8_t crc_a = 0;
+  uint8_t crc_b = 0;
+  for (uint8_t i = 1; i < 10; i++) {
+    crc_a += adc_msg[i];
+    crc_b += crc_a;
+  }
+
+  adc_msg[10] = crc_a;
+  adc_msg[11] = crc_b;
+}
+
 /**
   * @brief  Tx Transfer completed callback
   * @param  UartHandle: UART handle.
