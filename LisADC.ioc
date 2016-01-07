@@ -1,4 +1,6 @@
 #MicroXplorer Configuration settings - do not modify
+ADC.ContinuousConvMode=ENABLE
+ADC.IPParameters=ContinuousConvMode
 File.Version=5
 KeepUserPlacement=false
 Mcu.Family=STM32F0
@@ -79,7 +81,7 @@ ProjectManager.DeviceId=STM32F042G6Ux
 ProjectManager.FirmwarePackage=STM32Cube FW_F0 V1.4.0
 ProjectManager.FreePins=false
 ProjectManager.HalAssertFull=false
-ProjectManager.KeepUserCode=false
+ProjectManager.KeepUserCode=true
 ProjectManager.LastFirmware=true
 ProjectManager.LibraryCopy=1
 ProjectManager.ProjectBuild=false

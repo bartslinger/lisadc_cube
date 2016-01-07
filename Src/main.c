@@ -37,7 +37,7 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -81,12 +81,26 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+
+  if (HAL_ADC_Start(&hadc) != HAL_OK) {
+  }
+
+  if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK) {
+  }
+  else {
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    uint32_t meting = HAL_ADC_GetValue(&hadc);
+    char buf[80];
+    sprintf(buf, "%u\n", (unsigned int) meting);
+    HAL_UART_Transmit(&huart1, (uint8_t *)buf, strlen(buf), 10);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
