@@ -86,7 +86,6 @@ int main(void)
   MX_USART1_UART_Init();
 
   /* USER CODE BEGIN 2 */
-  uint8_t idx = 0;
   // LED OFF
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
@@ -104,12 +103,12 @@ int main(void)
     previous_tick = HAL_GetTick();
     static uint32_t counter = 0;
     counter++;
-    HAL_ADC_Start(&hadc);
-    HAL_ADC_PollForConversion(&hadc, 10);
-    adc_values[idx] = (uint16_t) HAL_ADC_GetValue(&hadc);
-    /* Increment index */
-    idx++; idx %= 3;
-
+    for (uint8_t idx = 0; idx < 3; idx++){
+      HAL_ADC_Start(&hadc);
+      HAL_ADC_PollForConversion(&hadc, 10);
+      adc_values[idx] = (uint16_t) HAL_ADC_GetValue(&hadc);
+      /* Increment index */
+    }
     // Print out values
     //sprintf(buf, "ANALOG:    %5u   %4u %4u %4u\n", (unsigned int) counter, (unsigned int) metingen[0], (unsigned int) metingen[1], (unsigned int) metingen[2]);
     construct_pprz_msg();
